@@ -1,0 +1,17 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+.streamlit/secrets.toml
+
+# Raw SEC submissions are ~1 GB and re-downloadable via `python -m src.download`
+data/raw/
+sec-edgar-filings/
+
+# Derived artifacts - regenerate with the pipeline
+data/clean/
+data/chunks/
+
+.ipynb_checkpoints/
+.DS_Store

@@ -1,0 +1,231 @@
+[
+  {
+    "id": "q01",
+    "category": "single_company_numeric",
+    "question": "What was Apple's total revenue in FY2023?",
+    "expected_route": "numeric",
+    "expected_tickers": ["AAPL"],
+    "expected_years": {"AAPL": ["FY2023"]},
+    "expected_facts": [{"ticker": "AAPL", "fiscal_year": "FY2023", "metric": "Revenue", "value": 383285000000}],
+    "answer_must_contain": ["383,285"],
+    "notes": "Baseline numeric lookup. Must route to the fact table, not to prose."
+  },
+  {
+    "id": "q02",
+    "category": "single_company_numeric",
+    "question": "What was Apple's net income in fiscal 2023?",
+    "expected_route": "numeric",
+    "expected_tickers": ["AAPL"],
+    "expected_years": {"AAPL": ["FY2023"]},
+    "expected_facts": [{"ticker": "AAPL", "fiscal_year": "FY2023", "metric": "Net Income", "value": 96995000000}],
+    "answer_must_contain": ["96,995"],
+    "notes": "'fiscal 2023' phrasing rather than FY2023."
+  },
+  {
+    "id": "q03",
+    "category": "single_company_numeric",
+    "question": "How much did Nvidia spend on research and development in FY2025?",
+    "expected_route": "numeric",
+    "expected_tickers": ["NVDA"],
+    "expected_years": {"NVDA": ["FY2025"]},
+    "expected_facts": [{"ticker": "NVDA", "fiscal_year": "FY2025", "metric": "R&D Expense", "value": 12914000000}],
+    "answer_must_contain": ["12,914"],
+    "notes": "NVDA FY2025 ended 2025-01-26 - answer should carry that date."
+  },
+  {
+    "id": "q04",
+    "category": "single_company_numeric",
+    "question": "What were Microsoft's total assets in FY2025?",
+    "expected_route": "numeric",
+    "expected_tickers": ["MSFT"],
+    "expected_years": {"MSFT": ["FY2025"]},
+    "expected_facts": [{"ticker": "MSFT", "fiscal_year": "FY2025", "metric": "Total Assets", "value": 619003000000}],
+    "answer_must_contain": ["619,003"],
+    "notes": "Instant (balance-sheet) fact rather than a duration fact."
+  },
+  {
+    "id": "q05",
+    "category": "single_company_numeric",
+    "question": "What was Apple's diluted earnings per share in FY2024?",
+    "expected_route": "numeric",
+    "expected_tickers": ["AAPL"],
+    "expected_years": {"AAPL": ["FY2024"]},
+    "expected_facts": [{"ticker": "AAPL", "fiscal_year": "FY2024", "metric": "EPS (diluted)", "value": 6.08}],
+    "answer_must_contain": ["6.08"],
+    "notes": "USD/shares unit - must not be rendered as whole dollars."
+  },
+  {
+    "id": "q06",
+    "category": "single_company_numeric",
+    "question": "What was Coca-Cola's revenue in FY2024?",
+    "expected_route": "numeric",
+    "expected_tickers": ["KO"],
+    "expected_years": {"KO": ["FY2024"]},
+    "expected_facts": [{"ticker": "KO", "fiscal_year": "FY2024", "metric": "Revenue", "value": 47061000000}],
+    "answer_must_contain": ["47,061"],
+    "notes": "KO tags revenue as `Revenues`, not the contract-with-customer tag."
+  },
+  {
+    "id": "q07",
+    "category": "single_company_numeric",
+    "question": "What was McDonald's total revenue in FY2024?",
+    "expected_route": "numeric",
+    "expected_tickers": ["MCD"],
+    "expected_years": {"MCD": ["FY2024"]},
+    "expected_facts": [{"ticker": "MCD", "fiscal_year": "FY2024", "metric": "Revenue", "value": 25920000000}],
+    "answer_must_contain": ["25,920"],
+    "notes": "MCD is the filing with no Item-N headers; checks the anchor-based split too."
+  },
+  {
+    "id": "q08",
+    "category": "multi_company_comparison",
+    "question": "Compare Apple's FY2023 revenue with Microsoft's FY2025 revenue.",
+    "expected_route": "comparison",
+    "expected_tickers": ["AAPL", "MSFT"],
+    "expected_years": {"AAPL": ["FY2023"], "MSFT": ["FY2025"]},
+    "expected_facts": [
+      {"ticker": "AAPL", "fiscal_year": "FY2023", "metric": "Revenue", "value": 383285000000},
+      {"ticker": "MSFT", "fiscal_year": "FY2025", "metric": "Revenue", "value": 281724000000}
+    ],
+    "answer_must_contain": ["383,285", "281,724"],
+    "notes": "Different fiscal calendars - the answer should flag that the periods do not align."
+  },
+  {
+    "id": "q09",
+    "category": "multi_company_comparison",
+    "question": "Which had higher revenue in FY2024, Alphabet or Coca-Cola?",
+    "expected_route": "comparison",
+    "expected_tickers": ["GOOGL", "KO"],
+    "expected_years": {"GOOGL": ["FY2024"], "KO": ["FY2024"]},
+    "expected_facts": [
+      {"ticker": "GOOGL", "fiscal_year": "FY2024", "metric": "Revenue", "value": 350018000000},
+      {"ticker": "KO", "fiscal_year": "FY2024", "metric": "Revenue", "value": 47061000000}
+    ],
+    "answer_must_contain": ["350,018", "47,061"],
+    "notes": "Both December year-ends, so periods are genuinely comparable."
+  },
+  {
+    "id": "q10",
+    "category": "multi_year_comparison",
+    "question": "How did Nvidia's revenue change from FY2024 to FY2025?",
+    "expected_route": "comparison",
+    "expected_tickers": ["NVDA"],
+    "expected_years": {"NVDA": ["FY2025", "FY2024"]},
+    "expected_facts": [
+      {"ticker": "NVDA", "fiscal_year": "FY2024", "metric": "Revenue", "value": 60922000000},
+      {"ticker": "NVDA", "fiscal_year": "FY2025", "metric": "Revenue", "value": 130497000000}
+    ],
+    "answer_must_contain": ["130,497", "60,922"],
+    "notes": "Single company, two years - still a comparison route."
+  },
+  {
+    "id": "q11",
+    "category": "cross_company_broad",
+    "question": "Which of the companies you cover had the highest revenue in its most recent fiscal year?",
+    "expected_route": "comparison",
+    "expected_tickers": ["GOOGL", "MCD", "AAPL", "KO", "MSFT", "NKE", "NVDA", "DIS"],
+    "answer_must_contain": ["416,161"],
+    "notes": "No company named but inherently comparative - must fan out to all 8, not ask for clarification. AAPL FY2025 revenue is the largest."
+  },
+  {
+    "id": "q12",
+    "category": "narrative",
+    "question": "What risk factors does Nvidia disclose about reliance on third-party foundries?",
+    "expected_route": "narrative",
+    "expected_tickers": ["NVDA"],
+    "expected_sections": ["Item 1A - Risk Factors"],
+    "notes": "Should use reranked chunks only and pull no fact-table rows."
+  },
+  {
+    "id": "q13",
+    "category": "narrative",
+    "question": "How does Disney describe competition in its streaming business?",
+    "expected_route": "narrative",
+    "expected_tickers": ["DIS"],
+    "notes": "Qualitative; reranker must keep Disney chunks over other media-adjacent companies."
+  },
+  {
+    "id": "q14",
+    "category": "narrative",
+    "question": "What does Nike say about its supply chain and manufacturing partners?",
+    "expected_route": "narrative",
+    "expected_tickers": ["NKE"],
+    "notes": "Supply-chain language is common to several companies - a direct test of reranker company discrimination."
+  },
+  {
+    "id": "q15",
+    "category": "narrative",
+    "question": "What does Microsoft describe as the main drivers of its cloud revenue growth?",
+    "expected_route": "narrative",
+    "expected_tickers": ["MSFT"],
+    "expected_sections": ["Item 7 - Management's Discussion and Analysis of Financial Condition and Results of Operations (MD&A)"],
+    "notes": "Should draw from MD&A rather than Risk Factors."
+  },
+  {
+    "id": "q16",
+    "category": "year_defaulting",
+    "question": "What was Nike's revenue?",
+    "expected_route": "numeric",
+    "expected_tickers": ["NKE"],
+    "expected_assumed_year": true,
+    "notes": "No year given - must default to the most recent fiscal year AND say that it did."
+  },
+  {
+    "id": "q17",
+    "category": "multi_turn",
+    "turns": [
+      {
+        "question": "What was Apple's total revenue in FY2023?",
+        "expected_route": "numeric",
+        "expected_tickers": ["AAPL"],
+        "answer_must_contain": ["383,285"]
+      },
+      {
+        "question": "How does that compare to Microsoft's most recent fiscal year?",
+        "expected_route": "comparison",
+        "expected_tickers": ["AAPL", "MSFT"],
+        "answer_must_contain": ["331,839"]
+      }
+    ],
+    "notes": "Phase 10.1 condensation - turn 2 is meaningless without turn 1."
+  },
+  {
+    "id": "q18",
+    "category": "multi_turn",
+    "turns": [
+      {
+        "question": "What were Nvidia's revenues in FY2025?",
+        "expected_route": "numeric",
+        "expected_tickers": ["NVDA"],
+        "answer_must_contain": ["130,497"]
+      },
+      {
+        "question": "And the year before that?",
+        "expected_route": "numeric",
+        "expected_tickers": ["NVDA"],
+        "answer_must_contain": ["60,922"]
+      }
+    ],
+    "notes": "Relative year reference resolved by condensation, not by retrieval."
+  },
+  {
+    "id": "q19",
+    "category": "single_company_numeric",
+    "question": "What was Disney's operating income in FY2024?",
+    "expected_route": "numeric",
+    "expected_tickers": ["DIS"],
+    "expected_years": {"DIS": ["FY2024"]},
+    "expected_facts": [{"ticker": "DIS", "fiscal_year": "FY2024", "metric": "Operating Income", "value": 15601000000}],
+    "answer_must_contain": ["15,601"],
+    "notes": "DIS FY2024 ended 2024-09-28, a 52/53-week year."
+  },
+  {
+    "id": "q20",
+    "category": "missing_metric",
+    "question": "How much did Coca-Cola spend on research and development in FY2024?",
+    "expected_route": "numeric",
+    "expected_tickers": ["KO"],
+    "expected_facts": [],
+    "notes": "KO does not XBRL-tag ResearchAndDevelopmentExpense. The system must say the figure is not available rather than inventing one."
+  }
+]

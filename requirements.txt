@@ -1,0 +1,22 @@
+# --- Pipeline (offline batch jobs) ---
+sec-edgar-downloader==5.1.0
+beautifulsoup4==4.12.3
+lxml==5.2.1
+requests>=2.31.0
+
+# --- Core RAG ---
+openai>=1.40.0
+tiktoken>=0.7.0
+qdrant-client>=1.9.0
+pandas>=2.0.0
+python-dotenv>=1.0.0
+
+# --- Reranker (Phase 11: BAAI/bge-reranker-base) ---
+# CPU-only torch keeps the Streamlit Community Cloud build under the free-tier
+# size limit; without these pins pip pulls ~2 GB of CUDA wheels.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.8.0+cpu
+sentence-transformers>=3.0.0
+
+# --- App ---
+streamlit>=1.36.0
