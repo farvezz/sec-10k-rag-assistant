@@ -1,22 +1,27 @@
-# --- Pipeline (offline batch jobs) ---
-sec-edgar-downloader==5.1.0
-beautifulsoup4==4.12.3
-lxml==5.2.1
-requests>=2.31.0
+# Runtime dependencies for the deployed Streamlit app ONLY.
+#
+# The app is read-only: it queries Qdrant and the prebuilt fact table and never
+# downloads, parses or chunks a filing. The ingestion pipeline's dependencies
+# (lxml, BeautifulSoup, sec-edgar-downloader, tiktoken) live in
+# requirements-pipeline.txt and are deliberately NOT installed here - building
+# lxml from source on a host without libxml2 headers is a guaranteed deploy
+# failure, for a package the app never imports.
+#
+# Versions are floors, not pins, so the resolver can pick wheels matching
+# whatever Python the host runs. Pinning exact versions here previously broke
+# the build when the host moved to Python 3.14 and no cp314 wheels existed.
 
-# --- Core RAG ---
-openai>=1.40.0
-tiktoken>=0.7.0
-qdrant-client>=1.9.0
-pandas>=2.0.0
-python-dotenv>=1.0.0
+streamlit>=1.36
+openai>=1.40
+qdrant-client>=1.9
+pandas>=2.0
+python-dotenv>=1.0
 
 # --- Reranker (Phase 11: BAAI/bge-reranker-base) ---
-# CPU-only torch keeps the Streamlit Community Cloud build under the free-tier
-# size limit; without these pins pip pulls ~2 GB of CUDA wheels.
+# The CPU index keeps this to a ~200 MB wheel; without it pip resolves the
+# CUDA build and pulls ~2 GB of nvidia-* packages, which blows the free-tier
+# build. `torch>=2.5,<3` (rather than `==2.8.0+cpu`) lets the resolver match
+# the host's Python ABI.
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.8.0+cpu
-sentence-transformers>=3.0.0
-
-# --- App ---
-streamlit>=1.36.0
+torch>=2.5,<3
+sentence-transformers>=3.0

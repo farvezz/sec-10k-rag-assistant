@@ -189,9 +189,13 @@ Run them with `python -m eval.run_eval --guardrails-only`.
 
 ```bash
 python -m venv .venv && .venv/Scripts/activate      # Windows
-pip install -r requirements.txt
+pip install -r requirements-pipeline.txt             # app runtime + ingestion
 cp .env.example .env                                 # then fill in the values
 ```
+
+(`pip install -r requirements.txt` alone installs only what the deployed app
+needs — enough to run `app.py` against an already-populated Qdrant collection,
+but not enough to build the corpus.)
 
 `.env` needs `SEC_USER_AGENT` (SEC requires `"Your Name your@email.com"` on every request),
 `OPENAI_API_KEY`, `QDRANT_URL` and `QDRANT_API_KEY`.
@@ -215,6 +219,16 @@ Each stage is resumable and idempotent. `download` skips filings already on disk
 The app is read-only: it needs the Qdrant collection populated and
 `data/fact_table.json` committed (it is), but never runs ingestion itself.
 `data/chunks/` and `data/clean/` are gitignored and are not needed at runtime.
+
+**Dependencies are split for exactly this reason.** `requirements.txt` holds only
+what the app imports at runtime; `requirements-pipeline.txt` adds the ingestion
+stack (`lxml`, BeautifulSoup, `sec-edgar-downloader`, `tiktoken`) and is not
+installed on the deploy host. Shipping one combined file failed the first deploy:
+the host had no `libxml2` headers, so `lxml` fell back to a source build and died
+— for a package the app never imports. Versions are floors rather than exact
+pins for the same class of reason: the host moved to Python 3.14 and the pinned
+`torch==2.8.0+cpu` had no cp314 wheel. Every runtime dependency now resolves to a
+cp314 wheel, so no Python version needs pinning in the deploy settings.
 
 On Streamlit Community Cloud, point it at `app.py` and set these under
 **App settings → Secrets** (same keys as `.env`, TOML syntax — see

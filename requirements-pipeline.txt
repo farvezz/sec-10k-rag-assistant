@@ -1,0 +1,14 @@
+# Additional dependencies for the offline batch pipeline (Phases 3-9, 13).
+#
+# Install these only where you actually run ingestion:
+#     pip install -r requirements-pipeline.txt
+#
+# The deployed app does not need any of them - see requirements.txt.
+
+-r requirements.txt
+
+sec-edgar-downloader>=5.1.0    # Phase 3  - download.py
+requests>=2.31                 # Phase 3/13 - SEC submissions + companyfacts APIs
+beautifulsoup4>=4.12           # Phase 4  - extract.py
+lxml>=5.2                      # Phase 4  - BeautifulSoup's parser backend
+tiktoken>=0.7                  # Phase 7  - chunk sizing, must match the embedding model
