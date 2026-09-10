@@ -210,6 +210,33 @@ streamlit run app.py              # Phase 15
 Each stage is resumable and idempotent. `download` skips filings already on disk;
 `embed_and_store` skips point IDs already in the collection (`--recreate` to rebuild).
 
+### Deploying
+
+The app is read-only: it needs the Qdrant collection populated and
+`data/fact_table.json` committed (it is), but never runs ingestion itself.
+`data/chunks/` and `data/clean/` are gitignored and are not needed at runtime.
+
+On Streamlit Community Cloud, point it at `app.py` and set these under
+**App settings → Secrets** (same keys as `.env`, TOML syntax — see
+`.streamlit/secrets.toml.example`):
+
+```toml
+OPENAI_API_KEY = "sk-..."
+QDRANT_URL = "https://<cluster>.<region>.aws.cloud.qdrant.io"
+QDRANT_API_KEY = "..."
+QDRANT_COLLECTION = "sec_10k_chunks"
+MAX_QUERIES_PER_SESSION = "20"
+```
+
+**Memory is the constraint worth knowing about.** `BAAI/bge-reranker-base` is a
+1.1 GB fp32 checkpoint, and it is downloaded and held in RAM alongside torch and
+Streamlit. That is comfortable locally and tight-to-over on a free Community Cloud
+instance. The reranker is read from the `RERANKER_MODEL` setting precisely so this
+is a secrets change rather than a code change — if the instance runs out of memory,
+`cross-encoder/ms-marco-MiniLM-L-6-v2` (~90 MB) is a drop-in that keeps the
+cross-encoder stage at a real quality cost. Compare them with
+`python -m eval.run_eval --reranker <model>` before deciding.
+
 ### Costs
 
 Embedding the whole corpus once is ~3.78 M tokens ≈ **$0.08**. Each query is ~3,500–5,000
