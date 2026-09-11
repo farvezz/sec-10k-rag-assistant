@@ -11,6 +11,8 @@ all. They're pulled from SEC's own XBRL data into a structured fact table and in
 into the prompt as authoritative, while the vector store handles what it's good at —
 explanations, risk factors, strategy, trends.
 
+![The assistant answering a revenue question, showing a verified XBRL figure and a filing excerpt](docs/demo-dark.png)
+
 ---
 
 ## Architecture
@@ -31,7 +33,7 @@ flowchart TD
     D --> J[bge-reranker-base<br/>20 candidates → top 5]
     G --> K[Prompt assembly<br/>facts first, then narrative]
     J --> K
-    K --> L[gpt-4o<br/>temp 0.1 · JSON out]
+    K --> L[gpt-4o-mini<br/>temp 0.1 · JSON out]
     L --> M[Streamlit<br/>answer + split citations]
     Z --> M
 ```
@@ -61,7 +63,7 @@ should be able to see at a glance which numbers are verified and which text is a
 > **Status.** Fully built and run end to end. All 40 filings downloaded, extracted,
 > sectioned and chunked; the fact table validated against the filings themselves; 5,651
 > chunks embedded and upserted into Qdrant Cloud (1536d, cosine, payload-indexed); and
-> both eval suites passing against live `gpt-4o` and live retrieval — including the
+> both eval suites passing against live `gpt-4o-mini` and live retrieval — including the
 > two multi-turn condensation cases and the prompt-injection-inside-retrieved-context
 > guardrail.
 
@@ -121,7 +123,8 @@ semantically wrong tag; a spot check on two values cannot.
 
 Testing against a live model showed this needs enforcing in two places, not one. Asked for
 Nike's operating income — a metric Nike does not tag — `gpt-4o` reached into the narrative
-context, derived EBIT and presented it as operating income. The system prompt now forbids
+context, derived EBIT and presented it as operating income. (`gpt-4o-mini` passes the same
+case with the guard in place; the guard is what makes either model safe here.) The system prompt now forbids
 substituting or deriving a measure, *and* the router passes the specific missing
 `(company, year, metric)` into the prompt so the instruction is concrete rather than
 general. The same pattern applies to fiscal-period misalignment and to quoting the fiscal
@@ -182,6 +185,44 @@ as defence in depth.
 | Unavailable metric | "Nike's operating income?" | Says it isn't tagged rather than deriving it |
 
 Run them with `python -m eval.run_eval --guardrails-only`.
+
+---
+
+## Interface
+
+The UI has one job beyond looking tidy: make the verified/summarised split visible
+without asking anyone to read this file.
+
+**Colour is load-bearing and encodes exactly one thing.** Blue is a value read
+directly from SEC XBRL; amber is prose summarised by the model. That pairing runs
+through the inline citation chips in the answer and the source panels beneath it,
+so you can see which half of a sentence is verified at a glance. Blue/amber is
+also the most reliably distinguishable pair for colour-blind readers, and avoids
+the up/down connotation green/red would carry in a financial context.
+
+**Three typefaces, three jobs.** A serif for answer prose, because it is reading
+material; the UI sans for chrome; monospace with `tabular-nums` for anything
+numeric or identifier-like, so `$383,285,000,000` and `$47,061,000,000` align and
+can be compared by eye. Metric rows use a dotted leader to a right-aligned figure —
+the financial-statement convention.
+
+**The pipeline reports itself while it runs.** Retrieval takes ten to twenty
+seconds, and the architecture is the interesting part, so the wait shows the real
+stages with real counts — condensation, routing, fact-table hits, candidates
+retrieved, candidates kept after reranking, tokens generated — rather than one
+opaque spinner.
+
+**Guardrail refusals render as labelled notices**, visually distinct from answers,
+so a deliberate policy decision does not read as a failure.
+
+The empty state offers starter questions grouped by the capability each exercises,
+and the palette follows the viewer's system theme through `prefers-color-scheme`.
+
+![The same answer rendered in the light palette](docs/demo-light.png)
+
+The app paints its own surfaces from the same tokens as its content: Streamlit
+resolves its theme on the client at boot, so a server-side guess desynced from the
+chrome it was meant to match and left light text on a light background.
 
 ---
 
@@ -253,11 +294,14 @@ cross-encoder stage at a real quality cost. Compare them with
 
 ### Costs
 
-Embedding the whole corpus once is ~3.78 M tokens ≈ **$0.08**. Each query is ~3,500–5,000
-input tokens plus ~500 output ≈ **$0.015–0.02**. Cheap per query is not cheap at any
-volume, so the deployed app enforces a **20-query-per-session cap** (`MAX_QUERIES_PER_SESSION`)
-and the account carries a hard OpenAI spending limit — a public link has no natural
-ceiling on traffic.
+Embedding the whole corpus once is ~3.78 M tokens ≈ **$0.08**, and is paid once — the
+app never re-embeds.
+
+Each query is ~3,500–5,000 input tokens plus ~500 output. On `gpt-4o-mini` that is
+**~$0.001**; on `gpt-4o` it was ~$0.015–0.02, so the switch is roughly a 20× reduction per
+query. Cheap per query is still not cheap at any volume, so the deployed app keeps a
+**20-query-per-session cap** (`MAX_QUERIES_PER_SESSION`) and the account carries a hard
+OpenAI spending limit — a public link has no natural ceiling on traffic.
 
 ---
 
@@ -293,9 +337,14 @@ ceiling on traffic.
 
 ## Stack
 
-`text-embedding-3-small` (1536d) · `gpt-4o` (temp 0.1, JSON mode) · Qdrant Cloud (cosine,
-payload-indexed on `ticker`/`fiscal_year`/`section`/`cik`) · `BAAI/bge-reranker-base`
-cross-encoder · SEC XBRL `companyfacts` · Streamlit.
+`text-embedding-3-small` (1536d) · `gpt-4o-mini` (temp 0.1, JSON mode) · Qdrant Cloud
+(cosine, payload-indexed on `ticker`/`fiscal_year`/`section`/`cik`) ·
+`BAAI/bge-reranker-base` cross-encoder · SEC XBRL `companyfacts` · Streamlit.
+
+Both models are read from settings (`CHAT_MODEL`, `RERANKER_MODEL`), so swapping either is
+a config change rather than a code change — and `python -m eval.run_eval` is what tells you
+whether the swap held. Generation carries most of the guardrail behaviour, so it is worth
+re-running both suites after changing `CHAT_MODEL`.
 
 The reranker loads through `sentence-transformers`' `CrossEncoder` rather than
 `FlagEmbedding`'s `FlagReranker` — same BAAI weights, same scores, one less dependency, and

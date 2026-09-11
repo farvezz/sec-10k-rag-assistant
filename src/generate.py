@@ -48,7 +48,10 @@ Rules:
    segment total) and never derive one from the narrative context or by
    arithmetic. A derived number presented as a reported number is the single
    worst failure you can produce.
-5. Cite sources using the bracketed numbers next to each piece of context, e.g. [1], [2].
+5. Cite sources using the bracketed label next to each item: [F1], [F2] for rows
+   in the STRUCTURED DATA block and [3], [4] for narrative excerpts. A figure
+   taken from the structured block must be cited with its [F#] label - never
+   attribute an exact figure to a narrative excerpt instead.
 6. If the available information does not answer the question, say so explicitly -
    do not guess or infer beyond what is provided.
 7. If context excerpts conflict or are ambiguous, point that out rather than

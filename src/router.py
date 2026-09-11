@@ -187,17 +187,36 @@ def associate_years(text: str, tickers: list[str], years: list[str]) -> dict[str
     if len(tickers) <= 1:
         return {t: list(years) for t in tickers}
     cpos = company_positions(text)
-    tokens = year_positions(text) + [(m.start(), LATEST_TOKEN) for m in LATEST_RE.finditer(text)]
-    if len(tokens) <= 1 or len(cpos) < len(tickers):
+    tokens = sorted(
+        year_positions(text) + [(m.start(), LATEST_TOKEN) for m in LATEST_RE.finditer(text)]
+    )
+    if not tokens or len(cpos) < len(tickers):
         return {t: list(years) for t in tickers}
+
+    # Bind each time reference to the company mention that *precedes* it, rather
+    # than to the nearest one by raw distance. English puts the qualifier after
+    # its subject - "Apple's revenue in FY2023 ... Microsoft's revenue in its
+    # most recent fiscal year" - and with proximity alone the FY2023 sitting
+    # between the two names is closer to "Microsoft" than its own trailing
+    # "most recent", so Microsoft silently inherits Apple's year.
+    ordered = sorted(cpos.items(), key=lambda kv: kv[1])
+    bound: dict[str, list[str]] = {t: [] for t in tickers}
+    saw_latest: dict[str, bool] = {t: False for t in tickers}
+    for pos, token in tokens:
+        owner = next((t for t, cp in reversed(ordered) if cp < pos), ordered[0][0])
+        if token == LATEST_TOKEN:
+            saw_latest[owner] = True
+        else:
+            bound[owner].append(token)
+
     out: dict[str, list[str]] = {}
     for t in tickers:
-        p = cpos.get(t)
-        if p is None:
-            out[t] = list(years)
-            continue
-        nearest = min(tokens, key=lambda tp: abs(tp[0] - p))
-        out[t] = [] if nearest[1] == LATEST_TOKEN else [nearest[1]]
+        if bound[t]:
+            out[t] = bound[t]
+        elif saw_latest[t]:
+            out[t] = []              # explicit "most recent" - resolved by the caller
+        else:
+            out[t] = list(years)     # nothing said about this company specifically
     return out
 
 

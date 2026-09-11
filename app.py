@@ -33,7 +33,8 @@ st.set_page_config(
 # os.environ via python-dotenv. Bridge them before importing anything that
 # resolves configuration at import time.
 for _key in ("OPENAI_API_KEY", "QDRANT_URL", "QDRANT_API_KEY", "QDRANT_COLLECTION",
-             "SEC_USER_AGENT", "RERANKER_MODEL", "MAX_QUERIES_PER_SESSION"):
+             "SEC_USER_AGENT", "RERANKER_MODEL", "CHAT_MODEL",
+             "MAX_QUERIES_PER_SESSION"):
     try:
         if _key in st.secrets and not os.getenv(_key):
             os.environ[_key] = str(st.secrets[_key])
@@ -107,7 +108,8 @@ def sidebar() -> tuple[list[str], list[str]]:
             '<div class="side-note" style="font-family:var(--mono);font-size:.7rem;'
             'line-height:1.75">'
             'text-embedding-3-small · 1536d<br>Qdrant Cloud · cosine · 5,651 vectors<br>'
-            'BAAI/bge-reranker-base<br>SEC XBRL companyfacts · 355 rows<br>gpt-4o · temp 0.1'
+            f'BAAI/bge-reranker-base<br>SEC XBRL companyfacts · 355 rows<br>'
+            f'{C.CHAT_MODEL} · temp {C.GEN_TEMPERATURE}'
             '</div>',
             unsafe_allow_html=True,
         )

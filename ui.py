@@ -258,15 +258,22 @@ body, .stMarkdown, .stMarkdown p {{ color: var(--text); }}
 [data-testid="stChatInput"] textarea::placeholder {{ color: var(--faint) !important; }}
 [data-testid="stChatInput"] button svg {{ color: var(--muted); }}
 
-[data-baseweb="select"] > div {{
-  background: var(--bg) !important; border-color: var(--border) !important;
-  color: var(--text) !important; font-size:.82rem;
+/* Streamlit may resolve its own theme to light while ours follows the system
+   to dark, so the multiselect has to be repainted. Note the hook: 1.63 emits no
+   data-baseweb attributes, and the visible surface is a role="group" div whose
+   emotion class is build-specific - stMultiSelect is the only stable anchor. */
+[data-testid="stMultiSelect"] div[role="group"] {{
+  background-color: var(--bg) !important; border-color: var(--border) !important;
+  color: var(--text) !important;
 }}
-[data-baseweb="popover"] [role="listbox"], [data-baseweb="menu"] {{
-  background: var(--surface) !important; border:1px solid var(--border) !important;
+[data-testid="stMultiSelect"] input,
+[data-testid="stMultiSelect"] span {{ color: var(--text) !important; }}
+[data-testid="stMultiSelect"] svg {{ fill: var(--muted) !important; }}
+/* The dropdown renders in a portal, outside the widget subtree. */
+[data-testid="portal"] ul, [data-testid="portal"] li {{
+  background-color: var(--surface) !important; color: var(--text) !important;
 }}
-[data-baseweb="menu"] li {{ color: var(--text) !important; font-size:.82rem; }}
-[data-baseweb="tag"] {{ background: var(--fact_bg) !important; color: var(--fact) !important; }}
+[data-testid="portal"] li:hover {{ background-color: var(--surface2) !important; }}
 
 /* st.status renders as an expander */
 [data-testid="stExpander"] details {{
@@ -344,9 +351,20 @@ def render_notice(kind: str, text: str) -> None:
 def render_sources(result: dict) -> None:
     """Two visually distinct groups. A reader should never have to work out
     which numbers were verified and which prose was summarised."""
-    cited = result.get("cited") or result.get("citations") or []
-    facts = [c for c in cited if c["kind"] == "fact"]
-    narrative = [c for c in cited if c["kind"] == "narrative"]
+    supplied = result.get("citations") or []
+    cited_labels = {c["label"] for c in (result.get("cited") or [])}
+
+    # Verified figures are shown whenever they were supplied, cited or not. They
+    # were injected into the prompt as authoritative and the answer's numbers came
+    # from them, so hiding the panel because the model wrote [9] instead of [F1]
+    # would drop the most trustworthy thing on the page. gpt-4o-mini does exactly
+    # that often enough to matter.
+    facts = [c for c in supplied if c["kind"] == "fact"]
+
+    narrative = [c for c in supplied
+                 if c["kind"] == "narrative" and c["label"] in cited_labels]
+    if not narrative:  # model cited nothing; fall back to what it was given
+        narrative = [c for c in supplied if c["kind"] == "narrative"]
 
     if facts:
         st.markdown(
@@ -400,10 +418,15 @@ def render_sources(result: dict) -> None:
 
 def render_meta(result: dict) -> None:
     retrieved = result.get("retrieved") or []
-    cited = result.get("cited") or []
-    n_fact = sum(1 for c in cited if c["kind"] == "fact")
-    n_narr = sum(1 for c in cited if c["kind"] == "narrative")
-    scope = sorted({f"{c['ticker']} {c['fiscal_year']}" for c in cited}) or ["—"]
+    supplied = result.get("citations") or []
+    cited_labels = {c["label"] for c in (result.get("cited") or [])}
+    # Count what the panels below actually show, so the strip and the sources
+    # never contradict each other.
+    shown = [c for c in supplied
+             if c["kind"] == "fact" or c["label"] in cited_labels]
+    n_fact = sum(1 for c in shown if c["kind"] == "fact")
+    n_narr = sum(1 for c in shown if c["kind"] == "narrative")
+    scope = sorted({f"{c['ticker']} {c['fiscal_year']}" for c in shown}) or ["—"]
     bits = [
         f'<span><b>route</b> {result.get("question_type", "—")}</span>',
         f'<span><b>scope</b> {" · ".join(scope[:4])}{" +" + str(len(scope) - 4) if len(scope) > 4 else ""}</span>',
