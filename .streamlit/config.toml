@@ -1,5 +1,9 @@
+# No [theme] base is set on purpose: Streamlit then follows the viewer's
+# system colour scheme, and ui.py reads st.context.theme to pick the matching
+# palette (with a prefers-color-scheme fallback).
+
 [theme]
-base = "dark"
+font = "sans serif"
 
 [server]
 maxUploadSize = 5

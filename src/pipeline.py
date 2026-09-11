@@ -61,12 +61,26 @@ def _apply_manual_filters(route: Route, tickers: list[str] | None,
 def answer(question: str, history: list[dict] | None = None,
            reranker_model: str | None = None,
            filter_tickers: list[str] | None = None,
-           filter_years: list[str] | None = None) -> dict:
-    """Answer one turn. `history` is [{role, content}, ...] of completed turns."""
+           filter_years: list[str] | None = None,
+           on_stage=None) -> dict:
+    """Answer one turn. `history` is [{role, content}, ...] of completed turns.
+
+    `on_stage(name, detail)` is called as each stage completes, so a caller can
+    show the pipeline working instead of one opaque spinner. Optional and
+    side-effect free - the evals pass nothing and behave identically.
+    """
     from src.generate import generate  # imported late so guardrails need no OpenAI key
+
+    def stage(name: str, detail: str = "") -> None:
+        if on_stage:
+            on_stage(name, detail)
 
     history = history or []
     condensed = condense(question, history) if history else question
+    stage("condense",
+          "already standalone" if condensed.strip() == question.strip()
+          else f"resolved to: {condensed}")
+
     route = route_question(condensed)
 
     # A manual company filter resolves the "which company?" ambiguity, so the
@@ -76,16 +90,30 @@ def answer(question: str, history: list[dict] | None = None,
         route = route_question(f"{condensed} ({', '.join(filter_tickers)})")
 
     if route.question_type in GUARDRAIL_TYPES:
+        stage("route", f"{route.question_type} - answered by guardrail, no model call")
         return _guardrail_result(route, question, condensed)
 
     route = _apply_manual_filters(route, filter_tickers, filter_years)
+    scope = ", ".join(
+        f"{t} {'/'.join(route.fiscal_years.get(t) or ['-'])}" for t in route.tickers
+    ) or "all companies"
+    stage("route", f"{route.question_type} · {scope}")
+
+    if route.facts:
+        stage("facts", f"{len(route.facts)} exact value(s) from the XBRL fact table")
 
     candidates = search(condensed, route)
+    stage("search", f"{len(candidates)} candidate chunks from Qdrant")
+
     top_k = C.RERANK_TOP_K_MULTI if route.question_type == "comparison" else C.RERANK_TOP_K
     reranked = rerank(condensed, candidates, top_k=top_k, model_name=reranker_model)
     chunks = order_for_prompt(reranked)
+    stage("rerank", f"{len(candidates)} → {len(chunks)} after cross-encoder")
 
     result = generate(question, condensed, route, chunks, history)
+    stage("generate",
+          f"{C.CHAT_MODEL} · {result.get('prompt_tokens')} in / "
+          f"{result.get('completion_tokens')} out")
     result["guardrail"] = False
     result["retrieved"] = [
         {"ticker": c["ticker"], "fiscal_year": c["fiscal_year"], "section": c["section"],
